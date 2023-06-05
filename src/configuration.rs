@@ -1,4 +1,4 @@
-use config::{self, Config, ConfigBuilder, ConfigError, File};
+use config::{self, Config, ConfigError, File};
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -16,9 +16,18 @@ pub struct DatabaseSettings {
 }
 
 pub fn get_configuration() -> Result<Settings, ConfigError> {
-    let mut builder = Config::builder();
+    let builder = Config::builder();
     builder
         .add_source(File::with_name("configuration"))
         .build()?
         .try_deserialize()
+}
+
+impl DatabaseSettings {
+    pub fn connection_string(&self) -> String {
+        format!("postgres://{}:{}@{}:{}/{}",self.username,self.password,self.host,self.port,self.database_name)
+    }
+    pub fn connection_string_without_db(&self) -> String {
+        format!("postgres://{}:{}@{}:{}",self.username,self.password,self.host,self.port)
+    }
 }
