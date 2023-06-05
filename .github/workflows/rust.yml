@@ -21,7 +21,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: postgres
           ports:
-            - 5432:5432
+            - "5432:5432"
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
@@ -74,7 +74,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: postgres
           ports:
-            - 5432:5432
+            - "5432:5432"
     steps:
       - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
@@ -108,7 +108,7 @@ jobs:
           POSTGRES_PASSWORD: password
           POSTGRES_DB: postgres
         ports:
-          - 5432:5432
+          - "5432:5432"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
