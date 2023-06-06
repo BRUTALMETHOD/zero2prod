@@ -9,11 +9,12 @@ edition = "2021"
 actix-web = "4.3.1"
 chrono = { version = "0.4.26", default-features = false, features = ["clock"] }
 config = "0.13.3"
-env_logger = "0.10.0"
-log = "0.4.18"
 reqwest = "0.11.18"
 serde = { version = "1.0.163", features = ["derive"] }
 sqlx = { features = ["postgres", "macros", "runtime-actix-rustls", "chrono", "uuid", "migrate"] }
 tokio = "1.28.2"
 tracing = { version = "0.1.37", features = ["log"] }
+tracing-bunyan-formatter = "0.3.7"
+tracing-log = "0.1.3"
+tracing-subscriber = { version = "0.3.17", features = ["registry", "env-filter"] }
 uuid = { version = "1.3.3", features = ["v4"] }
