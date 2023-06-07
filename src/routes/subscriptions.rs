@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse, Responder};
+use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use sqlx::PgPool;
 use tracing;
@@ -22,10 +22,10 @@ pub struct SubscribeFormData {
 pub async fn subscribe(
     form: web::Form<SubscribeFormData>,
     db_pool: web::Data<PgPool>,
-) -> impl Responder {
+) -> HttpResponse {
     match insert_subscriber(&form, &db_pool).await {
-        Ok(_) => HttpResponse::Ok(),
-        Err(_) => HttpResponse::InternalServerError(),
+        Ok(_) => HttpResponse::Ok().finish(),
+        Err(_) => HttpResponse::InternalServerError().finish(),
     }
 }
 
