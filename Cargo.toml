@@ -14,7 +14,7 @@ random-string = "1.0.0"
 reqwest = "0.11.18"
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.163", features = ["derive"] }
-sqlx = { features = ["postgres", "macros", "runtime-actix-rustls", "chrono", "uuid", "migrate"] }
+sqlx = { features = ["postgres", "macros", "runtime-actix-rustls", "chrono", "uuid", "migrate", "offline"] }
 tokio = "1.28.2"
 tracing = { version = "0.1.37", features = ["log"] }
 tracing-actix-web = "0.7.5"

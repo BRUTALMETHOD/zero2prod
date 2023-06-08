@@ -2,9 +2,11 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" , "WIP"]
+    branches:
+      - Chapter-5
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - Chapter-5
 
 env:
   CARGO_TERM_COLOR: always
@@ -27,31 +29,35 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      
+
       - name: Install Rust rust-toolchain
         uses: dtolnay/rust-toolchain@stable
-      
+
       - name: Rust Cache Action
         uses: Swatinem/rust-cache@v2
         with:
           key: sqlx-${{ env.SQLX_VERSION }}
-      
+
       - name: Install sqlx-cli
         run: cargo install sqlx-cli
           --version=${{ env.SQLX_VERSION }}
           --features ${{ env.SQLX_FEATURES }}
           --no-default-features
           --locked
-      
+
       - name: Install postgresql-client
         run: sudo apt-get update && sudo apt-get install postgresql-client -y
-      
+
       - name: Migrate database
         run: SKIP_DOCKER=true ./scripts/init_db.sh
-      
+
+      - name: Check sqlx-data.json is up-to-date
+        run: |
+          cargo sqlx prepare --check -- --bin zero2prod
+
       - name: Run tests
         run: cargo test
-  
+
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
@@ -63,7 +69,7 @@ jobs:
           components: rustfmt
       - name: Enforce formatting
         run: cargo fmt --check
-  
+
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
@@ -95,8 +101,8 @@ jobs:
         run: SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Linting
         run: cargo clippy -- -D warnings
-        
-        
+
+
         # `coverage` container job
   coverage:
     name: Code coverage
@@ -130,4 +136,4 @@ jobs:
         run: SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Generate code coverage
         run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
-        
+
