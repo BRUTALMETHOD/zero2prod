@@ -1428,6 +1428,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "random-string"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf4e63111ec5292d8af9c220f06fe3bb87991cc78b6f1f7e291d1ae6b8a60817"
+dependencies = [
+ "fastrand",
+]
+
+[[package]]
 name = "redox_syscall"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2248,6 +2257,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "urlencoding"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8db7427f936968176eaa7cdf81b7f98b980b18495ec28f1b5791ac3bfe3eea9"
+
+[[package]]
 name = "uuid"
 version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2575,6 +2590,7 @@ dependencies = [
  "chrono",
  "config",
  "once_cell",
+ "random-string",
  "reqwest",
  "secrecy",
  "serde",
@@ -2584,6 +2600,7 @@ dependencies = [
  "tracing-bunyan-formatter",
  "tracing-log",
  "tracing-subscriber",
+ "urlencoding",
  "uuid",
 ]
 

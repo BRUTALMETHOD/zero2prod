@@ -1,9 +1,11 @@
 use once_cell::sync::Lazy;
+use random_string::generate;
 use reqwest;
 use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use tokio;
+use urlencoding::decode;
 use uuid::Uuid;
 use zero2prod::configuration::{get_configuration, DatabaseSettings};
 use zero2prod::telemetry::{get_subscriber, init_subscriber};
@@ -28,9 +30,12 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
     // Arrange
     let testapp: TestApp = spawn_app().await;
     let pg_pool = testapp.db_pool;
-
+    let charset = "abcdefghijklmnopqrstuvwxyz";
+    let client_name = format!("monster%20{}", generate(20, charset));
+    let client_email = format!("{}@{}.com", generate(5, charset), generate(5, charset));
     let client = reqwest::Client::new();
-    let body = "name=monster%20hamster&email=gnmeister@gmail.com";
+    let body = format!("name={}&email={}", &client_name, &client_email);
+
     //Act
     let response = client
         .post(&format!("{}/subscriptions", &testapp.address))
@@ -46,18 +51,25 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
         .fetch_one(&pg_pool)
         .await
         .expect("Failed to fetch saved subscriptions");
-    assert_eq!(saved.email, "gnmeister@gmail.com");
-    assert_eq!(saved.name, "monster hamster");
+    assert_eq!(saved.email, client_email);
+    assert_eq!(saved.name, decode(&client_name).unwrap());
 }
 
 #[actix_web::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
     let testapp: TestApp = spawn_app().await;
     let client = reqwest::Client::new();
+    let charset = "abcdefghijklmnopqrstuvwxyz";
+    let client_name: String = format!("name=monster%20{}", generate(10, charset));
+    let client_email: String = format!(
+        "email={}%40{}.com",
+        generate(5, charset),
+        generate(5, charset)
+    );
     let test_cases = vec![
-        ("name=monster%20hamster", "missing the email"),
-        ("email=gnmeister%40gmail.com", "missing the name"),
-        ("", "missing both name and email"),
+        (client_email, "missing the email"),
+        (client_name, "missing the name"),
+        (String::from(""), "missing both name and email"),
     ];
 
     for (invalid_body, error_message) in test_cases {
@@ -81,7 +93,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 }
 
 static TRACING: Lazy<()> = Lazy::new(|| {
-    let default_filter_level = "into".to_string();
+    let default_filter_level = "debug".to_string();
     let subscriber_name = "test".to_string();
     if std::env::var("TEST_LOG").is_ok() {
         let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
