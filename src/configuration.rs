@@ -1,6 +1,7 @@
 use secrecy::ExposeSecret;
 use secrecy::Secret;
-use sqlx::postgres::PgConnectOptions;
+use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::ConnectOptions;
 
 #[derive(serde::Deserialize)]
 pub struct Settings {
@@ -21,18 +22,27 @@ pub struct DatabaseSettings {
     pub port: u16,
     pub host: String,
     pub database_name: String,
+    pub require_ssl: bool,
 }
 
 impl DatabaseSettings {
     pub fn without_db(&self) -> PgConnectOptions {
+        let ssl_mode = if self.require_ssl {
+            PgSslMode::Require
+        } else {
+            PgSslMode::Prefer
+        };
         PgConnectOptions::new()
             .host(&self.host)
             .username(&self.username)
             .password(&self.password.expose_secret())
             .port(self.port)
+            .ssl_mode(ssl_mode)
     }
     pub fn with_db(&self) -> PgConnectOptions {
-        self.without_db().database(&self.database_name)
+        let mut options = self.without_db().database(&self.database_name);
+        options.log_statements(tracing::log::LevelFilter::Trace);
+        options
     }
 }
 
@@ -46,6 +56,10 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .unwrap_or_else(|_| "local".into())
         .try_into()
         .expect("Failed to parse APP_ENVIRONMENT.");
+    tracing::info!(
+        "Loading configuration environment: {}",
+        environment.as_str()
+    );
     let environment_filename = format!("{}.yaml", environment.as_str());
     let settings = config::Config::builder()
         .add_source(config::File::from(

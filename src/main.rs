@@ -34,6 +34,11 @@ async fn main() -> std::io::Result<()> {
         "{}:{}",
         configuration.application.host, configuration.application.port
     );
+    tracing::info!(
+        "Application listening on: {}:{}",
+        configuration.application.host,
+        configuration.application.port
+    );
     let listener = TcpListener::bind(&address).expect("Failed to bind to port.");
     run(listener, connection_pool)?.await
 }
