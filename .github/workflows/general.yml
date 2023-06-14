@@ -3,10 +3,10 @@ name: Rust
 on:
   push:
     branches:
-      - Chapter-5
+      - main
   pull_request:
     branches:
-      - Chapter-5
+      - main
 
 env:
   CARGO_TERM_COLOR: always
