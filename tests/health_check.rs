@@ -91,6 +91,39 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
     }
 }
 
+#[actix_web::test]
+async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
+    //Arrange
+    let testapp: TestApp = spawn_app().await;
+    let client = reqwest::Client::new();
+    let charset = "abcdefghijklmnopqrstuvwxyz";
+    let client_name: String = format!("name=monster%20{}", generate(10, charset));
+    let client_email: String = format!(
+        "email={}%40{}.com",
+        generate(5, charset),
+        generate(5, charset)
+    );
+    let test_cases = vec![
+        (format!("name=&email={}",client_email), "empty name"),
+        (format!("name={}&email=",client_name), "empty name"),
+        (format!("name={}&email=not-an-email",client_name), "invalid email"),
+    ];
+
+    for (body, description) in test_cases {
+        //Act
+        let response = client
+            .post(&format!("{}/subscriptions", &testapp.address))
+            .header("Content-Type","application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+        // Assert
+        assert_eq!(200, response.status().as_u16(),
+        "The API did not return a 200 OK when the payload was {}.", description);
+
+    }
+}
 static TRACING: Lazy<()> = Lazy::new(|| {
     let default_filter_level = "debug".to_string();
     let subscriber_name = "test".to_string();
