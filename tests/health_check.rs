@@ -104,24 +104,30 @@ async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
         generate(5, charset)
     );
     let test_cases = vec![
-        (format!("name=&email={}",client_email), "empty name"),
-        (format!("name={}&email=",client_name), "empty name"),
-        (format!("name={}&email=not-an-email",client_name), "invalid email"),
+        (format!("name=&email={}", client_email), "empty name"),
+        (format!("name={}&email=", client_name), "empty name"),
+        (
+            format!("name={}&email=not-an-email", client_name),
+            "invalid email",
+        ),
     ];
 
     for (body, description) in test_cases {
         //Act
         let response = client
             .post(&format!("{}/subscriptions", &testapp.address))
-            .header("Content-Type","application/x-www-form-urlencoded")
+            .header("Content-Type", "application/x-www-form-urlencoded")
             .body(body)
             .send()
             .await
             .expect("Failed to execute request.");
         // Assert
-        assert_eq!(200, response.status().as_u16(),
-        "The API did not return a 200 OK when the payload was {}.", description);
-
+        assert_eq!(
+            200,
+            response.status().as_u16(),
+            "The API did not return a 200 OK when the payload was {}.",
+            description
+        );
     }
 }
 static TRACING: Lazy<()> = Lazy::new(|| {
