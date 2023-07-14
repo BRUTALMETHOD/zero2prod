@@ -1,29 +1,7 @@
-use once_cell::sync::Lazy;
+use crate::helpers::spawn_app;
+use crate::helpers::TestApp;
 use random_string::generate;
-use reqwest;
-use sqlx::{Connection, Executor, PgConnection, PgPool};
-use std::net::TcpListener;
-use tokio;
 use urlencoding::decode;
-use uuid::Uuid;
-use zero2prod::configuration::{get_configuration, DatabaseSettings};
-use zero2prod::email_client::EmailClient;
-use zero2prod::telemetry::{get_subscriber, init_subscriber};
-
-#[actix_web::test]
-async fn health_check_works() {
-    let testapp: TestApp = spawn_app().await;
-    let client = reqwest::Client::new();
-    // Act
-    let response = client
-        .get(&format!("{}/health_check", &testapp.address))
-        .send()
-        .await
-        .expect("Failed to execute request.");
-    // Assert
-    assert!(response.status().is_success());
-    assert_eq!(Some(0), response.content_length());
-}
 
 #[actix_web::test]
 async fn subscribe_returns_a_200_for_valid_form_data() {
@@ -130,72 +108,4 @@ async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
             description
         );
     }
-}
-static TRACING: Lazy<()> = Lazy::new(|| {
-    let default_filter_level = "debug".to_string();
-    let subscriber_name = "test".to_string();
-    if std::env::var("TEST_LOG").is_ok() {
-        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
-        init_subscriber(subscriber);
-    } else {
-        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
-        init_subscriber(subscriber);
-    }
-});
-
-pub struct TestApp {
-    pub address: String,
-    pub db_pool: PgPool,
-}
-// launch app in background
-async fn spawn_app() -> TestApp {
-    Lazy::force(&TRACING);
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Unable to bind to random port.");
-    let port = listener.local_addr().unwrap().port();
-    let address = format!("http://127.0.0.1:{}", &port);
-
-    let mut configuration = get_configuration().expect("Failed to read configuration");
-    configuration.database.database_name = Uuid::new_v4().to_string();
-    let connection_pool = configure_database(&configuration.database).await;
-
-    // email_client
-    let sender_email = configuration
-        .email_client
-        .sender()
-        .expect("Invalid sender email address.");
-    let timeout = configuration.email_client.timeout();
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        configuration.email_client.authorization_token,
-        timeout,
-    );
-
-    let server = zero2prod::startup::run(listener, connection_pool.clone(), email_client)
-        .expect("Failed to bind address");
-    let _ = tokio::spawn(server);
-    TestApp {
-        address,
-        db_pool: connection_pool,
-    }
-}
-
-async fn configure_database(config: &DatabaseSettings) -> PgPool {
-    //create database
-    let mut connection = PgConnection::connect_with(&config.without_db())
-        .await
-        .expect("Failed to connect to Postgres.");
-    connection
-        .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
-        .await
-        .expect("Failed to create database.");
-    //migrate database
-    let connection_pool = PgPool::connect_with(config.with_db())
-        .await
-        .expect("Failed to connect to Postgres.");
-    sqlx::migrate!("./migrations")
-        .run(&connection_pool)
-        .await
-        .expect("Failed to migrate the database");
-    connection_pool
 }
