@@ -7,26 +7,18 @@ use urlencoding::decode;
 async fn subscribe_returns_a_200_for_valid_form_data() {
     // Arrange
     let testapp: TestApp = spawn_app().await;
-    let pg_pool = testapp.db_pool;
     let charset = "abcdefghijklmnopqrstuvwxyz";
     let client_name = format!("monster%20{}", generate(20, charset));
     let client_email = format!("{}@{}.com", generate(5, charset), generate(5, charset));
-    let client = reqwest::Client::new();
     let body = format!("name={}&email={}", &client_name, &client_email);
 
     //Act
-    let response = client
-        .post(&format!("{}/subscriptions", &testapp.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let response = testapp.post_subscriptions(body.into()).await;
     //Assert
     assert_eq!(200, response.status().as_u16());
 
     let saved = sqlx::query!("SELECT email,name FROM subscriptions",)
-        .fetch_one(&pg_pool)
+        .fetch_one(&testapp.db_pool)
         .await
         .expect("Failed to fetch saved subscriptions");
     assert_eq!(saved.email, client_email);
@@ -36,7 +28,7 @@ async fn subscribe_returns_a_200_for_valid_form_data() {
 #[actix_web::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
     let testapp: TestApp = spawn_app().await;
-    let client = reqwest::Client::new();
+    //let client = reqwest::Client::new();
     let charset = "abcdefghijklmnopqrstuvwxyz";
     let client_name: String = format!("name=monster%20{}", generate(10, charset));
     let client_email: String = format!(
@@ -52,13 +44,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 
     for (invalid_body, error_message) in test_cases {
         //Act
-        let response = client
-            .post(&format!("{}/subscriptions", &testapp.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(invalid_body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = testapp.post_subscriptions(invalid_body.into()).await;
         //Assert
         assert_eq!(
             400,
@@ -74,7 +60,7 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
 async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
     //Arrange
     let testapp: TestApp = spawn_app().await;
-    let client = reqwest::Client::new();
+    //let client = reqwest::Client::new();
     let charset = "abcdefghijklmnopqrstuvwxyz";
     let client_name: String = format!("name=monster%20{}", generate(10, charset));
     let client_email: String = format!(
@@ -93,13 +79,7 @@ async fn subscribe_returns_a_200_when_fields_are_present_but_empty() {
 
     for (body, description) in test_cases {
         //Act
-        let response = client
-            .post(&format!("{}/subscriptions", &testapp.address))
-            .header("Content-Type", "application/x-www-form-urlencoded")
-            .body(body)
-            .send()
-            .await
-            .expect("Failed to execute request.");
+        let response = testapp.post_subscriptions(body.into()).await;
         // Assert
         assert_eq!(
             400,
