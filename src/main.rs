@@ -1,9 +1,8 @@
-use sqlx::postgres::PgPoolOptions;
-use std::net::TcpListener;
+//use sqlx::postgres::PgPoolOptions;
+//use std::net::TcpListener;
 use zero2prod::startup::Application;
 use zero2prod::{
-    configuration::get_configuration, email_client::EmailClient, startup::run,
-    telemetry::get_subscriber, telemetry::init_subscriber,
+    configuration::get_configuration, telemetry::get_subscriber, telemetry::init_subscriber,
 };
 
 /// Compose multiple layers into a `tracing`'s subscriber.
