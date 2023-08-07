@@ -3,7 +3,7 @@ use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use sqlx::PgPool;
+use sqlx::{PgPool, Postgres, Transaction};
 use tracing;
 use uuid::Uuid;
 
@@ -11,7 +11,6 @@ use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 use crate::email_client::EmailClient;
 use crate::startup::ApplicationBaseUrl;
 
-#[derive(Debug)]
 pub struct StoreTokenError(sqlx::Error);
 
 impl ResponseError for StoreTokenError {}
@@ -25,6 +24,72 @@ impl std::fmt::Display for StoreTokenError {
         )
     }
 }
+
+impl std::error::Error for StoreTokenError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        Some(&self.0)
+    }
+}
+
+impl std::fmt::Debug for StoreTokenError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
+
+fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = e.source() {
+        writeln!(f, "Caused by:\n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
+}
+
+#[derive(Debug)]
+pub enum SubscribeError {
+    ValidationError(String),
+    DatabaseError(sqlx::Error),
+    StoreTokenError(StoreTokenError),
+    SendEmailError(reqwest::Error),
+}
+
+impl From<reqwest::Error> for SubscribeError {
+    fn from(e: reqwest::Error) -> Self {
+        Self::SendEmailError(e)
+    }
+}
+
+impl From<sqlx::Error> for SubscribeError {
+    fn from(e: sqlx::Error) -> Self {
+        Self::DatabaseError(e)
+    }
+}
+
+impl From<StoreTokenError> for SubscribeError {
+    fn from(e: StoreTokenError) -> Self {
+        Self::StoreTokenError(e)
+    }
+}
+
+impl From<String> for SubscribeError {
+    fn from(e: String) -> Self {
+        Self::ValidationError(e)
+    }
+}
+
+impl std::fmt::Display for SubscribeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Failed to create a new subscriber.")
+    }
+}
+impl std::error::Error for SubscribeError {}
+
+impl ResponseError for SubscribeError {}
 
 #[derive(serde::Deserialize)]
 pub struct SubscribeFormData {
@@ -56,29 +121,20 @@ pub async fn subscribe(
     // get the email client from the app context
     email_client: web::Data<EmailClient>,
     base_url: web::Data<ApplicationBaseUrl>,
-) -> Result<HttpResponse, actix_web::Error> {
-    let new_subscriber = match form.0.try_into() {
-        Ok(form) => form,
-        Err(_) => return Ok(HttpResponse::BadRequest().finish()),
-    };
+) -> Result<HttpResponse, SubscribeError> {
+    let new_subscriber = form.0.try_into()?;
 
-    let subscriber_id = match insert_subscriber(&new_subscriber, &db_pool).await {
-        Ok(subscriber_id) => subscriber_id,
-        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
-    };
+    let mut transaction = db_pool.begin().await?;
+    let subscriber_id = insert_subscriber(&new_subscriber, &mut transaction).await?;
     let subscription_token = generate_subscription_token();
     store_token(&db_pool, subscriber_id, &subscription_token).await?;
-    if send_confirmation_email(
+    send_confirmation_email(
         &email_client,
         new_subscriber,
         &base_url.0,
         &subscription_token,
     )
-    .await
-    .is_err()
-    {
-        return Ok(HttpResponse::InternalServerError().finish());
-    };
+    .await?;
 
     Ok(HttpResponse::Ok().finish())
 }
@@ -113,11 +169,12 @@ pub async fn send_confirmation_email(
 
 #[tracing::instrument(
     name = "Saving new subscriber details in the database",
-    skip(new_subscriber, db_pool)
+    skip(new_subscriber, transaction)
 )]
 pub async fn insert_subscriber(
     new_subscriber: &NewSubscriber,
-    db_pool: &PgPool,
+    transaction: &mut Transaction<'_, Postgres>,
+    //db_pool: &PgPool,
 ) -> Result<Uuid, sqlx::Error> {
     let subscriber_id = Uuid::new_v4();
     sqlx::query!(
@@ -132,7 +189,7 @@ pub async fn insert_subscriber(
     )
     // We use `get_ref` to get an immutable reference to the `PgConnection`
     // wrapped by `web::Data`.
-    .execute(db_pool)
+    .execute(transaction)
     .await
     .map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
