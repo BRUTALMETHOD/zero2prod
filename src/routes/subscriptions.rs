@@ -1,3 +1,4 @@
+use actix_web::http::StatusCode;
 use actix_web::ResponseError;
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
@@ -89,7 +90,16 @@ impl std::fmt::Display for SubscribeError {
 }
 impl std::error::Error for SubscribeError {}
 
-impl ResponseError for SubscribeError {}
+impl ResponseError for SubscribeError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST,
+            SubscribeError::DatabaseError(_)
+            | SubscribeError::StoreTokenError(_)
+            | SubscribeError::SendEmailError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
 
 #[derive(serde::Deserialize)]
 pub struct SubscribeFormData {
@@ -123,7 +133,6 @@ pub async fn subscribe(
     base_url: web::Data<ApplicationBaseUrl>,
 ) -> Result<HttpResponse, SubscribeError> {
     let new_subscriber = form.0.try_into()?;
-
     let mut transaction = db_pool.begin().await?;
     let subscriber_id = insert_subscriber(&new_subscriber, &mut transaction).await?;
     let subscription_token = generate_subscription_token();
