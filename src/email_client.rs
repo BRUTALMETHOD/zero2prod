@@ -180,7 +180,7 @@ mod tests {
     async fn send_email_times_out_if_the_server_takes_too_long() {
         // Arrange
         let mock_server = MockServer::start().await;
-        let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
+        let _sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let email_client = email_client(mock_server.uri());
         let response = ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(180));
         Mock::given(any())
