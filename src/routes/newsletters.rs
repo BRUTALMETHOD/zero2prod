@@ -1,5 +1,3 @@
-use std::task::Wake;
-
 use crate::domain::SubscriberEmail;
 use crate::email_client::EmailClient;
 use crate::routes::error_chain_fmt;
