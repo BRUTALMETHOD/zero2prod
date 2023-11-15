@@ -98,7 +98,7 @@ async fn validate_credentials(
 ) -> Result<uuid::Uuid, PublishError> {
     let row: Option<_> = sqlx::query!(
         r#"
-        SELECT user_id, password_hash, salt
+        SELECT user_id, password_hash
         FROM users
         WHERE username = $1
         "#,
