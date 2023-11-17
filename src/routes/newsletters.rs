@@ -102,8 +102,9 @@ async fn validate_credentials(
         .map_err(PublishError::UnexpectedError)?
         .ok_or_else(|| PublishError::AuthError(anyhow::anyhow!("Unknown username.")))?;
 
+    let current_span = tracing::Span::current();
     tokio::task::spawn_blocking(move || {
-        verify_password_hash(expected_password_hash, credentials.password)
+        current_span.in_scope(|| verify_password_hash(expected_password_hash, credentials.password))
     })
     .await
     .context("Failed to spawn blocking tasks..")
@@ -146,7 +147,7 @@ async fn get_stored_credentials(
     )
     .fetch_optional(pool)
     .await
-    .context("Failed to perform a query to re retrieve stored credentials.")
+    .context("Failed to perform a query to re retrieve stored credentials.")?
     .map(|row| (row.user_id, Secret::new(row.password_hash)));
     Ok(row)
 }
