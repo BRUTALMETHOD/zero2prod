@@ -16,7 +16,8 @@ use tracing_actix_web::TracingLogger;
 use crate::configuration::DatabaseSettings;
 use crate::email_client::EmailClient;
 use crate::routes::{
-    admin_dashboard, confirm, health_check, home, login, login_form, publish_newsletter, subscribe,
+    admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
+    login_form, publish_newsletter, subscribe,
 };
 
 pub struct ApplicationBaseUrl(pub String);
@@ -48,6 +49,8 @@ async fn run(
             ))
             .wrap(TracingLogger::default())
             .route("/admin/dashboard", web::get().to(admin_dashboard))
+            .route("/admin/password", web::get().to(change_password_form))
+            .route("/admin/password", web::post().to(change_password))
             .route("/newsletters", web::post().to(publish_newsletter))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/health_check", web::get().to(health_check))
