@@ -16,7 +16,7 @@ use zero2prod::{
 /// `Send` and `Sync` to make it possible to pass it to `init_subscriber`
 /// later on.
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
+async fn main() -> anyhow::Result<()> {
     // logging subscriber setup
     let subscriber = get_subscriber("zero2prod".into(), "debug".into(), std::io::stdout);
     init_subscriber(subscriber);
