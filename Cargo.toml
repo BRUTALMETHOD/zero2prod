@@ -33,6 +33,7 @@ argon2 = {version="0.3", features=["std"]}
 htmlescape = "0.3"
 actix-web-flash-messages = {version = "0.3", features = ["cookies"]}
 serde_json = "1"
+actix-web-lab = "0.15"
 
 [dependencies.actix-session]
 git = "https://github.com/actix/actix-extras"
