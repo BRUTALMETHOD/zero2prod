@@ -49,6 +49,13 @@ impl TestUser {
             password: Uuid::new_v4().to_string(),
         }
     }
+    pub async fn login(&self, app: &TestApp) {
+        app.post_login(&serde_json::json!({
+            "username": &self.username,
+            "password": &self.password
+        }))
+        .await;
+    }
     async fn store(&self, pool: &PgPool) {
         let salt = SaltString::generate(&mut rand::thread_rng());
         let password_hash = Argon2::new(
@@ -102,11 +109,27 @@ impl TestApp {
         let plain_text = get_link(&body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
     }
-    pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
+    pub async fn post_newsletter(&self, body: serde_json::Value) -> reqwest::Response {
         self.api_client
-            .post(&format!("{}/newsletters", &self.address))
-            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
-            .json(&body)
+            .post(&format!("{}/admin/newsletters", &self.address))
+            .form(&body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+    pub async fn get_publish_newsletter_html(&self) -> String {
+        self.api_client
+            .get(&format!("{}/admin/newsletters", &self.address))
+            .send()
+            .await
+            .expect("Failed to execute request.")
+            .text()
+            .await
+            .unwrap()
+    }
+    pub async fn get_publish_newsletter(&self) -> reqwest::Response {
+        self.api_client
+            .get(&format!("{}/admin/newsletters", &self.address))
             .send()
             .await
             .expect("Failed to execute request.")

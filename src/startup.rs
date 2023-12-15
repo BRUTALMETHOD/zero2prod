@@ -19,7 +19,7 @@ use crate::configuration::DatabaseSettings;
 use crate::email_client::EmailClient;
 use crate::routes::{
     admin_dashboard, change_password, change_password_form, confirm, health_check, home, log_out,
-    login, login_form, publish_newsletter, subscribe,
+    login, login_form, newsletter_form, publish_newsletter, subscribe,
 };
 
 pub struct ApplicationBaseUrl(pub String);
@@ -50,7 +50,6 @@ async fn run(
                 secret_key.clone(),
             ))
             .wrap(TracingLogger::default())
-            .route("/newsletters", web::post().to(publish_newsletter))
             .route("/subscriptions", web::post().to(subscribe))
             .route("/health_check", web::get().to(health_check))
             .route("/subscriptions/confirm", web::get().to(confirm))
@@ -60,6 +59,8 @@ async fn run(
             .service(
                 web::scope("/admin")
                     .wrap(from_fn(reject_anonymous_users))
+                    .route("/newsletters", web::post().to(publish_newsletter))
+                    .route("/newsletters", web::get().to(newsletter_form))
                     .route("/dashboard", web::get().to(admin_dashboard))
                     .route("/password", web::get().to(change_password_form))
                     .route("/password", web::post().to(change_password))
