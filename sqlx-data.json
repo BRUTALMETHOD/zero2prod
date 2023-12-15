@@ -1,12 +1,25 @@
 {
   "db": "PostgreSQL",
-  "2998b2efb2ea4c121816981aa7cca16a6988462df79f4b29a8c767d228a63488": {
+  "06fe18b796d9f0778bf0657477776f8fdc5452981b4f61951b9be922bbe72fd8": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Uuid"
+        ]
+      }
+    },
+    "query": "UPDATE users\n                 SET password_hash = $1\n                 WHERE user_id = $2"
+  },
+  "33b11051e779866db9aeb86d28a59db07a94323ffdc59a5a2c1da694ebe9a65f": {
     "describe": {
       "columns": [
         {
-          "name": "user_id",
+          "name": "username",
           "ordinal": 0,
-          "type_info": "Uuid"
+          "type_info": "Text"
         }
       ],
       "nullable": [
@@ -14,12 +27,11 @@
       ],
       "parameters": {
         "Left": [
-          "Text",
-          "Text"
+          "Uuid"
         ]
       }
     },
-    "query": "\n        SELECT user_id\n        FROM users\n        WHERE username = $1 AND password_hash = $2\n        "
+    "query": "\n        SELECT username\n        FROM users\n        WHERE user_id = $1\n        "
   },
   "7b57e2776a245ba1602f638121550485e2219a6ccaaa62b5ec3e4683e33a3b5f": {
     "describe": {
@@ -63,6 +75,32 @@
       }
     },
     "query": "UPDATE subscriptions SET status = 'confirmed' WHERE id = $1"
+  },
+  "acf1b96c82ddf18db02e71a0e297c822b46f10add52c54649cf599b883165e58": {
+    "describe": {
+      "columns": [
+        {
+          "name": "user_id",
+          "ordinal": 0,
+          "type_info": "Uuid"
+        },
+        {
+          "name": "password_hash",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT user_id, password_hash\n        FROM users\n        WHERE username = $1\n        "
   },
   "ad120337ee606be7b8d87238e2bb765d0da8ee61b1a3bc142414c4305ec5e17f": {
     "describe": {
