@@ -117,3 +117,40 @@ async fn you_must_be_logged_in_to_publish_a_newsletter() {
     // Assert
     assert_is_redirect_to(&response, "/login");
 }
+
+#[tokio::test]
+async fn newsletter_creation_is_idempotent() {
+    // Arrange
+    let app = spawn_app().await;
+    create_unconfirmed_subscriber(&app).await;
+    app.test_user.login(&app).await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    // Act 1 - Submit newsletter form
+    let newsletter_request_body = serde_json::json!({
+        "title": "Newsletter title",
+        "text_content": "Newsletter body as plain text",
+        "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
+    });
+    let response = app.post_newsletter(newsletter_request_body.clone()).await;
+    assert_is_redirect_to(&response, "/admin/newsletter");
+
+    // Act 2 - Follow
+    let html_page = app.get_publish_newsletter_html().await;
+    assert!(html_page.contains("The newsletter has been published"));
+
+    // Act 3 - Submit again
+    let response = app.post_newsletter(newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletter");
+
+    // Act 4 - Follow
+    let html_page = app.get_publish_newsletter_html().await;
+    assert!(html_page.contains("The newsletter has been published"));
+}
