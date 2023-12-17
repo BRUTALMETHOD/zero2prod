@@ -1,4 +1,3 @@
-use crate::domain::SubscriberEmail;
 use crate::idempotency::{save_response, IdempotencyKey};
 use crate::idempotency::{try_processing, NextAction};
 use actix_web::{web, HttpResponse};
@@ -17,10 +16,6 @@ pub struct FormData {
     text_content: String,
     html_content: String,
     idempotency_key: String,
-}
-
-struct ConfirmedSubscriber {
-    email: SubscriberEmail,
 }
 
 #[tracing::instrument(name="Publish a newsletter issue", skip_all, fields(user_id=%*user_id))]
