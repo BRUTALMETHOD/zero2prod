@@ -12,6 +12,7 @@ pub async fn newsletter_form(
     if session.get_user_id().map_err(e500)?.is_none() {
         return Ok(see_other("/login"));
     }
+    let idempotency_key = uuid::Uuid::new_v4();
     let mut msg_html = String::new();
     for m in flash_messages.iter() {
         writeln!(msg_html, "<p><i>{}</i></p>", m.content()).unwrap();
@@ -35,6 +36,7 @@ pub async fn newsletter_form(
                 name="newsletter_input"
             >
         </label>
+        <input hidden type="text" name="idempotency_key" value="{idempotency_key}">
         <button type="submit">Submit!</button>
 </form>
     <p><a href="/admin/dashboard">&lt;- Back</a></p>
