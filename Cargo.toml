@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 actix-web = "4.3.1"
 chrono = { version = "0.4.26", default-features = false, features = ["clock"] }
-config = { version = "0.13.3", default-features= false, features = ["yaml"] }
+config = { version = "0.14.0", default-features = false, features = ["yaml"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.163", features = ["derive"] }
 sqlx = { features = ["postgres", "macros", "runtime-actix-rustls", "chrono", "uuid", "migrate", "offline"] }
